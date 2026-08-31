@@ -1,5 +1,5 @@
 ﻿(function () {
-  // Candidate Pre-filled Profile Configuration
+  // Candidate Profile Configuration
   const PROFILE_CONFIG = {
     totalExperience: "3.4",
     pythonExp: "3",
@@ -7,11 +7,11 @@
     genAiExp: "2",
     currentCtc: "8.5",
     expectedCtc: "16",
-    noticePeriodDays: "30", // or "0" / "Immediate"
+    noticePeriodDays: "30",
     relocate: "Yes"
   };
 
-  const ACTION_DELAY_MS = 2000; // 2 seconds delay
+  const ACTION_DELAY_MS = 2000; // 2 seconds
   let isRunning = false;
   let appliedCount = 0;
 
@@ -19,14 +19,28 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  // 1. Create floating control widget
+  // 1. Trigger robust human-like click event for React / Angular / Vue
+  function simulateClick(element) {
+    if (!element) return;
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+    ["mouseenter", "mouseover", "mousedown", "mouseup", "click"].forEach((eventType) => {
+      const event = new MouseEvent(eventType, {
+        bubbles: true,
+        cancelable: true,
+        view: window
+      });
+      element.dispatchEvent(event);
+    });
+  }
+
+  // 2. Create Floating HUD Widget
   function createWidget() {
     if (document.getElementById("naukri-bot-panel")) return;
 
     const panel = document.createElement("div");
     panel.id = "naukri-bot-panel";
     panel.innerHTML = `
-      <h4>🚀 Naukri Multi-Apply (5 in 1 Go)</h4>
+      <h4>🚀 Naukri Multi-Apply (5 in 1)</h4>
       <button id="naukri-bot-btn">Start Auto Apply</button>
       <div id="naukri-bot-status">Status: Ready (0 applied)</div>
     `;
@@ -38,12 +52,12 @@
       if (isRunning) {
         btn.textContent = "Stop Automation";
         btn.classList.add("running");
-        updateStatus("Scanning job cards & batch apply options...");
+        updateStatus("Scanning Recommended Tabs & Checkboxes...");
         startApplierLoop();
       } else {
         btn.textContent = "Start Auto Apply";
         btn.classList.remove("running");
-        updateStatus(`Stopped. Total applied: ${appliedCount}`);
+        updateStatus(`Paused. Total applied: ${appliedCount}`);
       }
     });
   }
@@ -53,96 +67,124 @@
     if (el) el.textContent = `Status: ${text}`;
   }
 
-  // 2. Handle Questionnaire / Chatbot Modal Popup if one opens
-  async function handleQuestionnairePopup() {
-    const chatbotModal = document.querySelector(".chatbot_modal, .apply-message, .bot-container, .apply-dialog");
-    if (!chatbotModal) return;
-
-    updateStatus("Auto-filling questionnaire popup...");
-
-    const inputs = chatbotModal.querySelectorAll("input[type='text'], input[type='number']");
-    inputs.forEach((input) => {
-      const placeholder = (input.placeholder || "").toLowerCase();
-      const name = (input.name || "").toLowerCase();
-
-      if (placeholder.includes("current ctc") || name.includes("currentctc") || placeholder.includes("fixed")) {
-        input.value = PROFILE_CONFIG.currentCtc;
-      } else if (placeholder.includes("expected ctc") || name.includes("expectedctc")) {
-        input.value = PROFILE_CONFIG.expectedCtc;
-      } else if (placeholder.includes("notice") || name.includes("notice")) {
-        input.value = PROFILE_CONFIG.noticePeriodDays;
-      } else if (placeholder.includes("experience") || name.includes("exp")) {
-        input.value = PROFILE_CONFIG.pythonExp;
-      }
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      input.dispatchEvent(new Event("change", { bubbles: true }));
+  // 3. Handle Auto-Switching from 'Applies' tab to 'Profile' / 'You might like'
+  async function ensureActiveJobTab() {
+    // If currently on "Applies" tab (which only shows already applied jobs), switch to Profile or You might like
+    const tabs = Array.from(document.querySelectorAll("a, button, li, span, [class*='tab']"));
+    const activeTab = tabs.find((el) => {
+      const t = (el.innerText || "").toLowerCase();
+      return (t.includes("applies") || t.includes("applied")) && el.classList.value.includes("active");
     });
 
-    await delay(1000);
+    if (activeTab) {
+      updateStatus("Switching from 'Applies' to unapplied jobs tab...");
+      const targetTab = tabs.find((el) => {
+        const t = (el.innerText || "").toLowerCase();
+        return (t.includes("profile (") || t.includes("you might like") || t.includes("preferences")) && !t.includes("(0)");
+      });
 
-    const submitBtns = chatbotModal.querySelectorAll("button, .submit-btn, .action-btn, .apply-button");
-    for (const btn of submitBtns) {
-      if (btn.innerText && btn.innerText.match(/submit|save|continue|apply/i)) {
-        btn.click();
-        await delay(1000);
-        break;
+      if (targetTab) {
+        simulateClick(targetTab);
+        await delay(2500);
       }
     }
   }
 
-  // 3. Batch Apply (5-Jobs in one go) Strategy
-  async function tryBatchApply() {
-    // Look for similar-jobs multi-apply popup or bottom banner "Apply to 5 jobs"
-    const bulkButtons = Array.from(document.querySelectorAll("button, a, div[role='button']")).filter((el) => {
-      const text = (el.innerText || "").trim().toLowerCase();
-      return (
-        text.includes("apply to") && (text.includes("5") || text.includes("jobs") || text.includes("selected")) ||
-        text.includes("apply all") ||
-        text.includes("apply to all")
-      );
+  // 4. Handle Questionnaire / Chatbot Modal Popup
+  async function handleQuestionnairePopup() {
+    const chatbotModal = document.querySelector(
+      ".chatbot_modal, .apply-message, .bot-container, .apply-dialog, [class*='drawer'], [class*='modal']"
+    );
+    if (!chatbotModal) return;
+
+    const inputs = chatbotModal.querySelectorAll("input[type='text'], input[type='number']");
+    if (inputs.length > 0) {
+      updateStatus("Filling questionnaire popup...");
+      inputs.forEach((input) => {
+        const placeholder = (input.placeholder || "").toLowerCase();
+        const name = (input.name || "").toLowerCase();
+
+        if (placeholder.includes("current ctc") || name.includes("currentctc") || placeholder.includes("fixed")) {
+          input.value = PROFILE_CONFIG.currentCtc;
+        } else if (placeholder.includes("expected ctc") || name.includes("expectedctc")) {
+          input.value = PROFILE_CONFIG.expectedCtc;
+        } else if (placeholder.includes("notice") || name.includes("notice")) {
+          input.value = PROFILE_CONFIG.noticePeriodDays;
+        } else if (placeholder.includes("experience") || name.includes("exp")) {
+          input.value = PROFILE_CONFIG.pythonExp;
+        }
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+
+      await delay(1000);
+
+      const submitBtns = chatbotModal.querySelectorAll("button, .submit-btn, .action-btn, [class*='submit'], [class*='save']");
+      for (const btn of submitBtns) {
+        if (btn.innerText && btn.innerText.match(/submit|save|continue|apply/i)) {
+          simulateClick(btn);
+          await delay(1000);
+          break;
+        }
+      }
+    }
+  }
+
+  // 5. Select 5 Custom Checkboxes and Click the Top "Apply" Button
+  async function applyVia5In1Batch() {
+    // A. Find all checkbox elements (custom icons, spans, SVG wraps or inputs)
+    const customCheckboxes = Array.from(
+      document.querySelectorAll(
+        "i[class*='checkbox'], span[class*='checkbox'], div[class*='chk-wrap'], [class*='custom-checkbox'], [class*='tuple-checkbox'], [class*='checkbox-wrap'], input[type='checkbox']"
+      )
+    ).filter((el) => {
+      // Must be visible and not already checked
+      if (el.offsetParent === null) return false;
+      const isChecked =
+        el.checked ||
+        el.classList.contains("checked") ||
+        el.classList.contains("active") ||
+        el.getAttribute("aria-checked") === "true";
+      return !isChecked;
     });
 
-    if (bulkButtons.length > 0) {
-      const bulkBtn = bulkButtons[0];
-      bulkBtn.scrollIntoView({ behavior: "smooth", block: "center" });
-      await delay(1000);
-      bulkBtn.click();
-      appliedCount += 5;
-      updateStatus(`Batch applied! Total: ~${appliedCount} jobs.`);
-      await delay(ACTION_DELAY_MS);
-      await handleQuestionnairePopup();
-      return true;
-    }
-
-    // Look for selectable checkboxes on job cards to select 5 at a time
-    const checkboxes = Array.from(
-      document.querySelectorAll("input[type='checkbox']:not(:checked), .tuple-checkbox:not(.checked)")
-    ).filter((el) => el.offsetParent !== null);
-
-    if (checkboxes.length >= 3) {
+    if (customCheckboxes.length > 0) {
+      updateStatus(`Found ${customCheckboxes.length} job checkboxes. Selecting up to 5...`);
       let selected = 0;
-      for (const cb of checkboxes) {
-        if (selected >= 5) break;
-        cb.scrollIntoView({ behavior: "smooth", block: "center" });
-        cb.click();
+
+      for (const cb of customCheckboxes) {
+        if (selected >= 5 || !isRunning) break;
+
+        simulateClick(cb);
         selected++;
-        await delay(300);
+        await delay(500);
       }
 
       await delay(1000);
 
-      // Now click the dynamic floating "Apply to X jobs" button that appears after selecting
-      const applySelectedBtn = Array.from(
-        document.querySelectorAll("button, .batch-apply, .apply-selected, [class*='apply']")
-      ).find((el) => {
-        const text = (el.innerText || "").toLowerCase();
-        return text.includes("apply to") || text.includes("apply selected") || text.includes("apply (");
+      // B. Find the "Apply" button at the top header or bottom banner
+      const applyButtons = Array.from(
+        document.querySelectorAll("button, a, div[role='button'], [class*='apply']")
+      ).filter((el) => {
+        if (el.offsetParent === null) return false;
+        const text = (el.innerText || "").trim().toLowerCase();
+        // Match "Apply", "Apply (5)", "Apply to 5 jobs", "Apply to selected"
+        return (
+          text === "apply" ||
+          text.startsWith("apply (") ||
+          text.includes("apply to") ||
+          text.includes("apply selected")
+        );
       });
 
-      if (applySelectedBtn) {
-        applySelectedBtn.click();
+      if (applyButtons.length > 0 && selected > 0) {
+        // Select the prominent header/banner Apply button
+        const mainApplyBtn = applyButtons[0];
+        updateStatus(`Clicking main Apply button for ${selected} jobs...`);
+        simulateClick(mainApplyBtn);
         appliedCount += selected;
-        updateStatus(`Applied to ${selected} jobs in one go! Total: ${appliedCount}`);
+        updateStatus(`Successfully applied to ${selected} jobs! (Total: ${appliedCount})`);
+
         await delay(ACTION_DELAY_MS);
         await handleQuestionnairePopup();
         return true;
@@ -152,22 +194,23 @@
     return false;
   }
 
-  // 4. Main Automation Loop
+  // 6. Main Automation Loop
   async function startApplierLoop() {
     while (isRunning) {
-      // Step A: Attempt Batch / 5-in-1 Apply first
-      const batchSuccess = await tryBatchApply();
-      if (batchSuccess) {
+      // Step A: Ensure we are on an active unapplied jobs tab (e.g. Profile or You might like)
+      await ensureActiveJobTab();
+
+      // Step B: Attempt 5-in-1 batch selection
+      const batchDone = await applyVia5In1Batch();
+      if (batchDone) {
         await delay(ACTION_DELAY_MS);
         continue;
       }
 
-      // Step B: Fallback to individual 1-click apply buttons
+      // Step C: Fallback to individual 1-click apply buttons if no multi-select checkboxes
       const buttons = Array.from(
         document.querySelectorAll("button, a, .apply-button, .tuple-apply, [id*='apply']")
-      );
-
-      const applyButtons = buttons.filter((el) => {
+      ).filter((el) => {
         const text = (el.innerText || "").trim().toLowerCase();
         return (
           (text === "apply" || text === "easy apply" || text === "apply on naukri" || text === "apply now") &&
@@ -176,18 +219,43 @@
         );
       });
 
-      if (applyButtons.length === 0) {
-        updateStatus("No more apply buttons. Scrolling down...");
-        window.scrollBy({ top: 700, behavior: "smooth" });
-        await delay(ACTION_DELAY_MS);
+      if (buttons.length > 0) {
+        const btn = buttons[0];
+        updateStatus("Applying via 1-click button...");
+        simulateClick(btn);
+        btn.setAttribute("data-applied", "true");
+        appliedCount++;
+        updateStatus(`Applied to ${appliedCount} jobs. Waiting 2s...`);
 
-        const nextPage = document.querySelector(".pagination-next, a[href*='page=']");
-        if (nextPage && isRunning) {
-          updateStatus("Navigating to next page...");
-          nextPage.click();
+        await delay(ACTION_DELAY_MS);
+        await handleQuestionnairePopup();
+        continue;
+      }
+
+      // Step D: If no more jobs on current view, scroll or paginate
+      updateStatus("Scrolling to load next batch of recommended jobs...");
+      window.scrollBy({ top: 700, behavior: "smooth" });
+      await delay(ACTION_DELAY_MS);
+
+      // Check for pagination next button
+      const nextPage = document.querySelector(".pagination-next, a[href*='page=']");
+      if (nextPage && isRunning) {
+        updateStatus("Navigating to next page...");
+        simulateClick(nextPage);
+        await delay(ACTION_DELAY_MS);
+      } else {
+        // Try clicking the next tab e.g. "You might like" if "Profile" finished
+        const nextTab = Array.from(document.querySelectorAll("a, button, li, span")).find((el) => {
+          const t = (el.innerText || "").toLowerCase();
+          return (t.includes("you might like") || t.includes("preferences")) && !el.classList.value.includes("active");
+        });
+
+        if (nextTab && isRunning) {
+          updateStatus("Switching to next tab 'You might like'...");
+          simulateClick(nextTab);
           await delay(ACTION_DELAY_MS);
         } else {
-          updateStatus(`Finished! Total applied: ${appliedCount}`);
+          updateStatus(`Completed! Total applied: ${appliedCount}`);
           isRunning = false;
           const btn = document.getElementById("naukri-bot-btn");
           if (btn) {
@@ -195,31 +263,6 @@
             btn.classList.remove("running");
           }
           break;
-        }
-        continue;
-      }
-
-      for (const btn of applyButtons) {
-        if (!isRunning) break;
-
-        try {
-          btn.scrollIntoView({ behavior: "smooth", block: "center" });
-          await delay(800);
-
-          btn.click();
-          btn.setAttribute("data-applied", "true");
-          appliedCount++;
-          updateStatus(`Applied to ${appliedCount} jobs. Checking popups & similar 5-job banners...`);
-
-          await delay(1500);
-          await handleQuestionnairePopup();
-
-          // Check if clicking apply triggered the "Apply to 5 similar jobs" modal
-          await tryBatchApply();
-
-          await delay(ACTION_DELAY_MS);
-        } catch (err) {
-          console.error("Error applying to job card:", err);
         }
       }
     }
