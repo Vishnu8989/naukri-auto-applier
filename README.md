@@ -1,89 +1,135 @@
-﻿# 🚀 Naukri Smart Auto-Applier (Chrome Extension - Manifest V3)
+﻿# 🚀 Naukri Smart Auto-Applier (Manifest V3)
 
-A lightweight, automated Chrome Extension built to streamline job applications on [Naukri.com](https://www.naukri.com/). It automates both **Naukri's native 5-in-1 batch apply** and **1-click applies**, with intelligent auto-filling for common recruiter questionnaire modals and a built-in 2-second pacing timer.
+<p align="center">
+  <img src="https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Chrome Extension" />
+  <img src="https://img.shields.io/badge/Manifest-V3-34A853?style=for-the-badge&logo=google&logoColor=white" alt="Manifest V3" />
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License: MIT" />
+  <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=for-the-badge" alt="PRs Welcome" />
+</p>
+
+<p align="center">
+  <b>An intelligent, lightweight Chrome Extension to automate 5-in-1 batch applies and 1-click applications on Naukri.com with automatic questionnaire answering and rate-limit safe pacing.</b>
+</p>
 
 ---
 
-## ✨ Features
+## 🌟 Why Use This?
 
-- **⚡ 5-in-1 Batch Apply**: Prioritizes multi-select job tuples and triggers Naukri's native batch application feature to apply to 5 jobs simultaneously.
-- **🎯 1-Click Apply Fallback**: Gracefully executes single-click applies when batch mode is unavailable on specific search pages.
-- **🤖 Questionnaire & Chatbot Auto-Fill**: Automatically fills out standard popups (Current CTC, Expected CTC, Notice Period, Years of Experience in Python/Backend/GenAI).
-- **⏱️ Humanized Pacing**: Enforces a customizable delay (default: **2 seconds**) between actions to avoid rate-limiting and bot detection.
-- **🎛️ Floating Widget**: Injects a clean, non-intrusive dark-mode HUD on Naukri pages with live counters and 1-click start/stop controls.
+Applying to hundreds of job postings manually on Naukri is tedious. **Naukri Smart Auto-Applier** automates the repetitive application loop directly in your browser:
+- ⚡ **Leverages Naukri's Native 5-in-1 Batch Apply**: Detects multi-select tuples and triggers batch applications for maximum speed.
+- 🎯 **1-Click Apply Fallback**: Handles single-click applies when batch mode is unavailable.
+- 📝 **Auto-Fills Questionnaire Popups**: Automatically answers common prompts (*Current CTC, Expected CTC, Notice Period, Tech Experience*).
+- ⏱️ **Bot-Safe Pacing (2s Delay)**: Emulates natural human interaction timing to avoid rate limits and anti-bot blocks.
+- 🎛️ **Floating HUD Widget**: Injects an unobtrusive dark-mode controller right onto Naukri pages.
 
 ---
 
-## 🛠️ Project Structure
+## 🏗️ Architecture & Workflow
 
-```text
-naukri-auto-applier/
-├── manifest.json    # Chrome Manifest V3 configuration
-├── content.js       # Core automation engine, DOM watchers & questionnaire fillers
-├── styles.css       # Floating HUD UI styling
-└── README.md        # Documentation and setup guide
+```
+[ Naukri Search / Recommendations Page ]
+                   │
+                   ▼
+       [ Extension Detects Cards ]
+                   │
+         ┌─────────┴─────────┐
+         │                   │
+  [ 5-in-1 Batch Mode? ]   [ Single 1-Click? ]
+         │                   │
+  Selects 5 Checkboxes     Clicks "Apply"
+         │                   │
+  Hits "Apply to 5 Jobs"     │
+         └─────────┬─────────┘
+                   │
+                   ▼
+     [ Questionnaire / Modal Appears? ]
+         ├── Yes: Auto-fills CTC, Notice, Experience & Submits
+         └── No: Continues loop
+                   │
+                   ▼
+     [ 2.0s Human Pacing Delay ]
+                   │
+                   ▼
+    [ Smooth Scroll & Auto-Pagination ]
 ```
 
 ---
 
-## 📦 How to Install in Google Chrome
+## 📦 Quick Installation Guide
 
-1. Clone or download this repository to your local machine:
+### Method 1: Load Unpacked in Chrome (30 Seconds)
+
+1. Clone or download this repository:
    ```bash
    git clone https://github.com/Vishnu8989/naukri-auto-applier.git
    ```
-2. Open Google Chrome and visit:
+2. Open Google Chrome and go to:
    ```text
    chrome://extensions/
    ```
-3. Enable **Developer mode** using the toggle switch in the **top-right corner**.
-4. Click the **Load unpacked** button in the **top-left corner**.
-5. Select the `naukri-auto-applier` folder.
-6. The extension is now active!
+3. Enable **Developer mode** via the toggle in the **top-right corner**.
+4. Click **Load unpacked** in the **top-left corner**.
+5. Select the cloned `naukri-auto-applier` directory.
+6. The extension is now installed and active!
 
 ---
 
-## 🚀 How to Use
+## 🎮 How to Use
 
 1. Log into your account on [Naukri.com](https://www.naukri.com/).
-2. Navigate to:
-   - **Recommended Jobs**: `https://www.naukri.com/mnjuser/recommendedjobs`
-   - Or any **Search Results** page (e.g., *GenAI Engineer, Python Developer*).
-3. Look for the floating **🚀 Naukri Multi-Apply** panel in the bottom-right corner.
+2. Open your [Recommended Jobs Page](https://www.naukri.com/mnjuser/recommendedjobs) or any keyword search query.
+3. You will see the floating **🚀 Naukri Multi-Apply** HUD in the bottom-right corner.
 4. Click **"Start Auto Apply"**.
-5. The extension will:
-   - Check 5 job checkboxes at a time and hit **"Apply to 5 jobs"**.
-   - Auto-fill any questionnaire popups that appear.
-   - Smoothly paginate to the next page when all visible jobs are processed.
-6. Click **"Stop Automation"** at any time to pause.
+5. Watch the real-time status counter update as jobs are submitted automatically.
+6. Click **"Stop Automation"** anytime to pause.
 
 ---
 
-## ⚙️ Customizing Your Profile Details
+## ⚙️ Customizing Your Profile Config
 
-You can edit `content.js` to customize your pre-filled answers:
+To customize the values automatically entered into questionnaires, open [`content.js`](content.js) and modify the `PROFILE_CONFIG` object:
 
 ```javascript
 const PROFILE_CONFIG = {
-  totalExperience: "3.4",
-  pythonExp: "3",
+  totalExperience: "3.4",     // Your total years of experience
+  pythonExp: "3",             // Core tech stack experience
   fastApiExp: "2",
   genAiExp: "2",
-  currentCtc: "8.5",
-  expectedCtc: "16",
-  noticePeriodDays: "30", // or "0" / "Immediate"
+  currentCtc: "8.5",          // Current CTC (in LPA)
+  expectedCtc: "16",          // Expected CTC (in LPA)
+  noticePeriodDays: "30",     // "0", "15", "30", or "Immediate"
   relocate: "Yes"
 };
 ```
 
 ---
 
-## 🛡️ Recommended Usage Guidelines
+## 🛡️ Best Practices & Anti-Bot Safety
 
-- **Daily Quota**: Apply to **30 – 50 jobs per session** once or twice daily. Avoid running continuous automation on hundreds of jobs in a single sitting.
-- **Refresh Interval**: Keep your profile updated between 9:00 AM – 10:30 AM IST for peak recruiter search ranking.
+1. **Session Limits**: It is recommended to apply to **30 – 50 jobs per session** once or twice daily.
+2. **Peak Algorithm Timing**: Update your profile on Naukri between **9:00 AM – 10:30 AM IST** to rank at the top of recruiter searches.
+3. **Keep Tab Visible**: Chrome optimizes background tabs; keep the Naukri tab active or in a separate window while applying.
 
 ---
 
-## 📄 License
-MIT License. Created for personal productivity and streamlined job searching.
+## 🤝 Contributing
+
+Contributions make the open-source community an amazing place to learn and build. Any contributions you make are **greatly appreciated**!
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/NewFeature`)
+3. Commit your Changes (`git commit -m 'Add NewFeature'`)
+4. Push to the Branch (`git push origin feature/NewFeature`)
+5. Open a Pull Request
+
+---
+
+## 📜 License
+
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
+
+---
+
+<p align="center">
+  Crafted with ❤️ by <a href="https://github.com/Vishnu8989">Vishnu Singh</a>
+</p>
