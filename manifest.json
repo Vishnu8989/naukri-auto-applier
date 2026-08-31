@@ -1,0 +1,16 @@
+﻿{
+  "manifest_version": 3,
+  "name": "Naukri Smart Auto-Applier",
+  "version": "1.0",
+  "description": "Automate 1-click applies and auto-fill questionnaire popups on Naukri with 2-second delay.",
+  "permissions": ["activeTab"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.naukri.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ]
+}

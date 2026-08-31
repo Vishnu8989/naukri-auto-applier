@@ -1,0 +1,57 @@
+﻿#naukri-bot-panel {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  z-index: 9999999;
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  width: 270px;
+  border: 1px solid #334155;
+}
+
+#naukri-bot-panel h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #38bdf8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+}
+
+#naukri-bot-btn {
+  width: 100%;
+  padding: 10px;
+  background: #0284c7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+#naukri-bot-btn:hover {
+  background: #0369a1;
+}
+
+#naukri-bot-btn.running {
+  background: #ef4444;
+}
+
+#naukri-bot-btn.running:hover {
+  background: #dc2626;
+}
+
+#naukri-bot-status {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.4;
+  word-break: break-word;
+}
