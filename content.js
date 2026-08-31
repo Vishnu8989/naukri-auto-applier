@@ -22,7 +22,11 @@
   // 1. Trigger robust human-like click event for React / Angular / Vue
   function simulateClick(element) {
     if (!element) return;
-    element.scrollIntoView({ behavior: "smooth", block: "center" });
+    try {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (e) {
+      console.warn("Could not scroll into view", e);
+    }
     ["mouseenter", "mouseover", "mousedown", "mouseup", "click"].forEach((eventType) => {
       const event = new MouseEvent(eventType, {
         bubbles: true,
@@ -73,7 +77,8 @@
     const tabs = Array.from(document.querySelectorAll("a, button, li, span, [class*='tab']"));
     const activeTab = tabs.find((el) => {
       const t = (el.innerText || "").toLowerCase();
-      return (t.includes("applies") || t.includes("applied")) && el.classList.value.includes("active");
+      const hasActive = el.classList && el.classList.contains ? el.classList.contains("active") : false;
+      return (t.includes("applies") || t.includes("applied")) && hasActive;
     });
 
     if (activeTab) {
@@ -133,20 +138,30 @@
   // 5. Select 5 Custom Checkboxes and Click the Top "Apply" Button
   async function applyVia5In1Batch() {
     // A. Find all checkbox elements (custom icons, spans, SVG wraps or inputs)
-    const customCheckboxes = Array.from(
+    let customCheckboxes = Array.from(
       document.querySelectorAll(
         "i[class*='checkbox'], span[class*='checkbox'], div[class*='chk-wrap'], [class*='custom-checkbox'], [class*='tuple-checkbox'], [class*='checkbox-wrap'], input[type='checkbox']"
       )
     ).filter((el) => {
       // Must be visible and not already checked
-      if (el.offsetParent === null) return false;
-      const isChecked =
+      const style = window.getComputedStyle(el);
+      if (el.offsetParent === null || style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+
+      let isChecked =
         el.checked ||
-        el.classList.contains("checked") ||
-        el.classList.contains("active") ||
+        (el.classList && (el.classList.contains("checked") || el.classList.contains("active"))) ||
         el.getAttribute("aria-checked") === "true";
+
+      // Also check child inputs if it's a wrapper
+      const childInput = el.querySelector("input[type='checkbox']");
+      if (childInput && childInput.checked) {
+        isChecked = true;
+      }
       return !isChecked;
     });
+
+    // Remove elements that are descendants of other elements in the array to avoid double-clicking
+    customCheckboxes = customCheckboxes.filter(el => !customCheckboxes.some(parent => parent !== el && parent.contains(el)));
 
     if (customCheckboxes.length > 0) {
       updateStatus(`Found ${customCheckboxes.length} job checkboxes. Selecting up to 5...`);
@@ -238,7 +253,13 @@
       await delay(ACTION_DELAY_MS);
 
       // Check for pagination next button
-      const nextPage = document.querySelector(".pagination-next, a[href*='page=']");
+      let nextPage = document.querySelector(".pagination-next, a[href*='page=']");
+      if (!nextPage) {
+        // Fallback: look for button or link with "Next" text
+        const pageEls = Array.from(document.querySelectorAll("button, a, span"));
+        nextPage = pageEls.find(el => (el.innerText || "").trim().toLowerCase() === "next" && !el.disabled);
+      }
+
       if (nextPage && isRunning) {
         updateStatus("Navigating to next page...");
         simulateClick(nextPage);
@@ -247,7 +268,8 @@
         // Try clicking the next tab e.g. "You might like" if "Profile" finished
         const nextTab = Array.from(document.querySelectorAll("a, button, li, span")).find((el) => {
           const t = (el.innerText || "").toLowerCase();
-          return (t.includes("you might like") || t.includes("preferences")) && !el.classList.value.includes("active");
+          const hasActive = el.classList && el.classList.contains ? el.classList.contains("active") : false;
+          return (t.includes("you might like") || t.includes("preferences")) && !hasActive;
         });
 
         if (nextTab && isRunning) {
